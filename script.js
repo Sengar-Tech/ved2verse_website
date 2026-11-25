@@ -9,6 +9,58 @@ links.addEventListener('click', e => {
   if (e.target.closest('a')) { links.classList.remove('open'); btn.setAttribute('aria-expanded', false); }
 });
 
+// Side-scroll rails: arrows, progress bar, keyboard scrolling
+const ARROW = d => `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+function initRail(scroller, label) {
+  const rail = document.createElement('div');
+  rail.className = 'rail';
+  scroller.parentNode.insertBefore(rail, scroller);
+  scroller.tabIndex = 0;
+  scroller.setAttribute('role', 'region');
+  scroller.setAttribute('aria-label', label + ' (scroll sideways)');
+  const mkBtn = (cls, text, path) => {
+    const b = document.createElement('button');
+    b.className = 'rail-btn ' + cls; b.type = 'button';
+    b.setAttribute('aria-label', text); b.innerHTML = ARROW(path);
+    return b;
+  };
+  const prev = mkBtn('rail-prev', 'Previous', 'M15 5l-7 7 7 7');
+  const next = mkBtn('rail-next', 'Next', 'M9 5l7 7-7 7');
+  const bar = document.createElement('div');
+  bar.className = 'rail-progress'; bar.innerHTML = '<span></span>';
+  rail.append(prev, scroller, next, bar);
+  const fill = bar.firstChild;
+  const step = () => Math.max(scroller.clientWidth * 0.8, 200);
+  const update = () => {
+    const max = scroller.scrollWidth - scroller.clientWidth;
+    prev.disabled = scroller.scrollLeft < 8;
+    next.disabled = scroller.scrollLeft > max - 8;
+    bar.hidden = max < 8;
+    fill.style.transform = `scaleX(${Math.min(1, (scroller.scrollLeft + scroller.clientWidth) / scroller.scrollWidth)})`;
+  };
+  prev.addEventListener('click', () => scroller.scrollBy({ left: -step(), behavior: 'smooth' }));
+  next.addEventListener('click', () => scroller.scrollBy({ left: step(), behavior: 'smooth' }));
+  scroller.addEventListener('scroll', update, { passive: true });
+  scroller.addEventListener('keydown', e => {
+    if (e.target !== scroller) return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); next.click(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prev.click(); }
+  });
+  new MutationObserver(update).observe(scroller, { childList: true });
+  new ResizeObserver(update).observe(scroller);
+  scroller.addEventListener('load', update, true);
+  update();
+}
+initRail(document.querySelector('#gallery .grid'), 'Photo gallery');
+initRail(document.querySelector('.reels'), 'Reels');
+
+// Pause reels that scroll out of view
+const pauser = new IntersectionObserver(es => es.forEach(en => {
+  if (!en.isIntersecting && en.target.tagName === 'VIDEO') en.target.pause();
+}), { threshold: 0.25 });
+const watchVideos = () => document.querySelectorAll('.reels video').forEach(v => pauser.observe(v));
+watchVideos();
+
 const CFG = window.V2V || {};
 const API = CFG.SUPABASE_URL ? CFG.SUPABASE_URL + '/rest/v1/' : null;
 const apiHeaders = { apikey: CFG.SUPABASE_KEY, 'Content-Type': 'application/json' };
@@ -89,6 +141,7 @@ async function loadMedia() {
         return mk('li', {}, node);
       }).filter(Boolean));
       bindVideos();
+      watchVideos();
     }
   } catch (err) { console.warn('Using built-in content', err); }
 }
