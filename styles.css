@@ -119,7 +119,7 @@ footer .logo{color:var(--cream)}
 footer .small{opacity:.7;font-size:.9rem}
 
 /* lightbox */
-dialog{border:0;padding:0;background:transparent;max-width:min(92vw,720px);max-height:92vh;overflow:visible}
+dialog{margin:auto;border:0;padding:0;background:transparent;max-width:min(92vw,720px);max-height:92vh;overflow:visible}
 dialog::backdrop{background:rgba(20,10,8,.85)}
 dialog img{max-height:88vh;width:auto;max-width:100%;margin:auto;border-radius:var(--r)}
 .close{position:absolute;top:-8px;right:-8px;width:44px;height:44px;border-radius:50%;border:0;background:var(--cream);color:var(--ink);cursor:pointer;display:grid;place-items:center;z-index:2}
